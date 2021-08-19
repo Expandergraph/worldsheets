@@ -1,0 +1,52 @@
+# build stage
+FROM rust:slim as build
+
+# install libpq, libsqlite and create new empty binary progject
+RUN apt-get update; \
+    apt-get install --no-install-recommends -y libpq-dev libsqlite3-dev; \
+    USER=root cargo new --bin app
+WORKDIR /app
+
+# to copy manifests
+COPY ./Cargo.toml ./Cargo.toml
+
+# to build this project to cache dependencies
+RUN cargo build; \
+    rm src/*.rs
+
+# to copy project source and necessary files
+COPY ./src ./src
+COPY ./migrations ./migrations
+COPY ./diesel.toml .
+
+# to add .env and secret.key for Docker env
+RUN touch .env;
+    # mv src/secret.key src/secret.key
+
+# to rebuild app with project source
+RUN rm ./target/debug/deps/api_actix*; \
+    cargo build
+
+# to deploy stage
+FROM debian:buster-slim
+
+# to create app directory
+RUN mkdir app
+WORKDIR /app
+
+# to install libpq and libsqlite
+RUN apt-get update; \
+    apt-get install --no-install-recommends -y libpq5 libsqlite3-0; \
+    rm -rf /var/lib/apt/lists/*
+
+# to copy binary and configuration files
+COPY --from=build /app/target/debug/api_actix .
+COPY --from=build /app/.env .
+COPY --from=build /app/diesel.toml .
+COPY ./wait-for-it.sh .
+
+# to expose port
+EXPOSE 8000
+
+# to run the binary
+CMD ["./wait-for-it.sh", "db:5432", "--", "/app/api_actix"]
