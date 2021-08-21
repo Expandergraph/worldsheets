@@ -1,10 +1,51 @@
 [package]
 name = "worldsheets"
 version = "0.1.0"
-authors = ["yahtoo <yahtoo.ma@gmail.com>"]
+authors = ["yahtoo <yahtoo.ma@gmail.com>",
+           "Leon <yanglyu.leon.7@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "api_actix"
+path = "src/main.rs"
+
+[lib]
+name = "lib_api_actix"
+path = "src/lib.rs"
+
 [dependencies]
-clap = "3.0.0-beta.2"
+actix-cors = "0.5.4"
+actix-rt = "2.0.0"
+actix-service = "1.0.6"
+actix-web = "3.3.2"
+bcrypt = "0.10.1"
+clap = "3.0.0-beta.4"
+derive_more = "0.99.11"
+diesel_migrations = "1.4.0"
+dotenv = "0.15.0"
+env_logger = "0.9.0"
+failure = "0.1.8"
+futures = "0.3.12"
+jsonwebtoken = "7.2.0"
+log = "0.4.14"
+serde = "1.0.123"
+serde_derive = "1.0.123"
+serde_json = "1.0.62"
+
+[dependencies.diesel]
+version = "1.4.5"
+features = ["chrono", "postgres", "r2d2"]
+
+[dependencies.chrono]
+version = "0.4.19"
+features = ["serde"]
+
+[dependencies.uuid]
+version = "0.8.2"
+features = ["v4"]
+
+[dev-dependencies.diesel]
+version = "1.4.5"
+features = ["chrono", "r2d2", "sqlite"]

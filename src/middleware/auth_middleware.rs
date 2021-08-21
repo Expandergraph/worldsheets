@@ -1,32 +1,22 @@
 use crate::{
     config::db::Pool,
-    constants,
     models::response::ResponseBody,
-    utils::token_utils,
+    utils::{constants, token_utils},
 };
-
 use actix_service::{
     Service,
     Transform,
 };
-
-use actix_web::{
-    Error,
-    HttpResponse,
-    dev::{ServiceRequest, ServiceResponse},
-    http::{Method, HeaderName, HeaderValue},
-    web::Data,
-};
-
+use actix_web::{Error, HttpResponse, dev::{ServiceRequest, ServiceResponse}, http::{Method, HeaderName, HeaderValue}, web::Data};
 use futures::{
     future::{ok, Ready},
     Future,
 };
-
 use std::{
     pin::Pin,
     task::{Context, Poll},
 };
+use log::{error, info};
 
 pub struct Authentication;
 

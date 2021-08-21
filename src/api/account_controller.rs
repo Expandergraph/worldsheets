@@ -1,11 +1,11 @@
 use crate::{
     config::db::Pool,
-    constants,
     models::{
         user::{LoginDTO, UserDTO},
         response::ResponseBody,
     },
     services::account_service,
+    utils::constants,
 };
 
 use actix_web::{web, HttpRequest, HttpResponse, Result};

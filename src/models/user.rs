@@ -1,12 +1,13 @@
 use crate::{
     config::db::Connection,
-    constants,
     models::{login_history::LoginHistory, user_token::UserToken},
     schema::users::{self, dsl::*},
+    utils::constants,
 };
 
 use bcrypt::{hash, verify, DEFAULT_COST};
-use diesel::prelude::*;
+use diesel::{prelude::*, Identifiable, Insertable, QueryResult, Queryable};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Deserialize, Identifiable, Queryable, Serialize)]

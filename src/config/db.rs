@@ -6,6 +6,8 @@ use diesel::{
     r2d2::{self, ConnectionManager},
 };
 
+use log::info;
+
 embed_migrations!();
 
 #[cfg(not(test))]
@@ -28,7 +30,7 @@ pub fn migrate_and_config_db(url: &str) -> Pool{
 
 #[cfg(test)]
 pub fn migrate_and_config_db(url: &str) -> Pool{
-    use crate::diesel::RunQueryDsl;
+    use diesel::RunQueryDsl;
     info!("Migrating and configuring database...");
     let manager = ConnectionManager::<Connection>::new(url);
     let pool = r2d2::Pool::builder().build(manager).expect("Failed to create a pool");

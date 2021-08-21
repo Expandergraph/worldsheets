@@ -1,64 +1,101 @@
-use clap::{AppSettings, Clap};
+use ::lib_api_actix::{config, middleware};
+use actix_cors::Cors;
+use actix_service::Service;
+use actix_web::{http, App, HttpServer};
+use futures::FutureExt;
+use std::{default::Default, env, io};
 
-/// This doc string acts as a help message when the user runs '--help'
-/// as do all doc strings on fields
-#[derive(Clap)]
-#[clap(version = "0.1")]
-#[clap(setting = AppSettings::ColoredHelp)]
-struct Opts {
-    /// Sets a custom config file. Could have been an Option<T> with no default too
-    #[clap(short, long, default_value = "default.conf")]
-    config: String,
-    /// Some input. Because this isn't an Option<T> it's required to be used
-    input: String,
-    /// A level of verbosity, and can be used multiple times
-    #[clap(short, long, parse(from_occurrences))]
-    verbose: i32,
-    #[clap(subcommand)]
-    subcmd: SubCommand,
+#[actix_rt::main]
+async fn main() -> io::Result<()>{
+    dotenv::dotenv().expect("Failed to read .env file");
+    env::set_var("RUST_LOG", "actix_web=debug");
+    env_logger::init();
+
+    let app_host = env::var("APP_HOST").expect("APP_HOST not found.");
+    let app_port = env::var("APP_PORT").expect("APP_PORT not found.");
+    let app_url = format!("{}:{}", &app_host, &app_port);
+
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL not found");
+    let pool = crate::config::db::migrate_and_config_db(&db_url);
+
+    HttpServer::new(move || {
+        App::new()
+            .wrap(Cors::default()
+                .allowed_origin("http://127.0.0.1:3000")
+                .allowed_origin("http://localhost:3000")
+                .send_wildcard()
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                .allowed_header(http::header::CONTENT_TYPE)
+                .max_age(3600))
+            .data(pool.clone())
+            .wrap(actix_web::middleware::Logger::default())
+            .wrap(middleware::auth_middleware::Authentication)
+            .wrap_fn(|req, src|{
+                src.call(req).map(|res|res)
+            })
+            .configure(config::app::config_services)
+        })
+    .bind(&app_url)?
+    .run()
+    .await
 }
 
-#[derive(Clap)]
-enum SubCommand {
-    #[clap(version = "0.1")]
-    Test(Test),
-}
+#[cfg(test)]
+mod tests{
+    use ::lib_api_actix::config;
+    use actix_cors::Cors;
+    use actix_service::Service;
+    use actix_web::{http, App, HttpServer};
+    use futures::FutureExt;
 
-/// A subcommand for controlling testing
-#[derive(Clap)]
-struct Test {
-    /// Print debug info
-    #[clap(short)]
-    debug: bool
-}
+    #[actix_rt::test]
+    async fn test_startup_ok(){
+        let pool = config::db::migrate_and_config_db(":memory:");
 
-fn main() {
-    let opts: Opts = Opts::parse();
+        HttpServer::new(move || {
+            App::new()
+                .wrap(Cors::default()
+                    .send_wildcard()
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
+                    .max_age(3600))
+                .data(pool.clone())
+                .wrap(actix_web::middleware::Logger::default())
+                .wrap_fn(|req, srv|{
+                    srv.call(req).map(|res| res)
+                })
+                .configure(config::app::config_services)
+        })
+        .bind("localhost:8000".to_string()).unwrap()
+        .run();
 
-    // Gets a value for config if supplied by user, or defaults to "default.conf"
-    println!("Value for config: {}", opts.config);
-    println!("Using input file: {}", opts.input);
-
-    // Vary the output based on how many times the user used the "verbose" flag
-    // (i.e. 'myprog -v -v -v' or 'myprog -vvv' vs 'myprog -v'
-    match opts.verbose {
-        0 => println!("No verbose info"),
-        1 => println!("Some verbose info"),
-        2 => println!("Tons of verbose info"),
-        _ => println!("Don't be ridiculous"),
+        assert_eq!(true, true);
     }
 
-    // You can handle information about subcommands by requesting their matches by name
-    // (as below), requesting just the name used, or both at the same time
-    match opts.subcmd {
-        SubCommand::Test(t) => {
-            if t.debug {
-                println!("Printing debug info...");
-            } else {
-                println!("Printing normally...");
-            }
-        }
-    }
+    #[actix_rt::test]
+    async fn test_startup_without_auth_middleware_ok(){
+        let pool = config::db::migrate_and_config_db(":memory:");
 
-    // more program logic goes here...
+        HttpServer::new(move ||{
+            App::new()
+                .wrap(Cors::default()
+                    .send_wildcard()
+                    .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
+                    .max_age(3600))
+                .data(pool.clone())
+                .wrap(actix_web::middleware::Logger::default())
+                .wrap_fn(|req, srv|{
+                    srv.call(req).map(|res| res)
+                })
+                .configure(config::app::config_services)
+        })
+        .bind("localhost:8001".to_string()).unwrap()
+        .run();
+
+        assert_eq!(true, true)
+    }
 }

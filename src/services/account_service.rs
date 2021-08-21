@@ -1,10 +1,8 @@
 use crate::{
     config::db::Pool,
-    constants,
-    errors::ServiceError,
     models::user::{User, UserDTO, LoginDTO},
     models::user_token::UserToken,
-    utils::token_utils,
+    utils::{constants, errors::ServiceError, token_utils},
 };
 
 use actix_web::{
@@ -14,6 +12,8 @@ use actix_web::{
     },
     web,
 };
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Deserialize, Serialize)]
 pub struct TokenBodyResponse{
@@ -54,7 +54,6 @@ pub fn logout(authen_header: &HeaderValue, pool: &web::Data<Pool>) -> Result<(),
                 if let Ok(username) = token_utils::verify_token(&token_data, pool){
                     if let Ok(user) = User::find_user_by_username(&username, &pool.get().unwrap()){
                         User::logout(user.id, &pool.get().unwrap());
-                        
                         return Ok(());
                     }
                 }

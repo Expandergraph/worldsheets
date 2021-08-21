@@ -5,6 +5,7 @@ use jsonwebtoken::{
     EncodingKey,
     Header,
 };
+use serde::{Deserialize, Serialize};
 
 pub static KEY: [u8; 16] = *include_bytes!("../secret.key");
 static ONE_WEEK: i64 = 60 * 60 * 24 * 7; // in second

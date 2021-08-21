@@ -5,7 +5,7 @@ use crate::{
 };
 
 use chrono::{NaiveDateTime, Utc};
-use diesel::prelude::*;
+use diesel::{prelude::*, Associations, Identifiable, Insertable, Queryable, QueryResult};
 
 #[derive(Associations, Identifiable, Queryable)]
 #[belongs_to(User)]
@@ -29,7 +29,7 @@ impl LoginHistory{
             let now = Utc::now();
             Some(LoginHistoryInsertableDTO{
                 user_id: user.id,
-                login_timestamp: now.naive_utc(),  
+                login_timestamp: now.naive_utc(),
             })
         }else{
             None
